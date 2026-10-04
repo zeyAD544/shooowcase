@@ -88,10 +88,30 @@
     var viewerItems = images.map(function (im) { return { url: im.url, label: im.label || "" }; });
     viewer = K.createViewer();
 
+    var heroWrap = document.getElementById("proj-hero");
+    var restSection = document.getElementById("proj-rest-section");
+    var restWrap = document.getElementById("proj-rest");
+
+    if (!images.length) {
+      /* No media on this project. A project can legitimately be saved with no
+         images (e.g. an upload failed), so show a graceful empty state rather
+         than crashing the page on images[0].url. */
+      heroWrap.innerHTML =
+        '<div class="figure-empty" data-fit="contain">' +
+          '<p class="eyebrow">No media yet</p>' +
+          "<h3>This project has no images.</h3>" +
+          "<p>Open it in the admin dashboard and add images — they will appear here straight away.</p>" +
+        "</div>";
+      restSection.hidden = true;
+      renderNext();
+      setMeta(project);
+      document.title = project.title + " — Kyn, 3D Modeler";
+      return;
+    }
+
     var hero = images[0];
     var rest = images.slice(1);
 
-    var heroWrap = document.getElementById("proj-hero");
     heroWrap.innerHTML =
       '<figure class="figure reveal" data-fit="' + (isSquare(hero.url) ? "contain" : "natural") + '">' +
         '<button class="figure__frame" type="button" data-viewer-index="0" aria-label="Open the primary render fullscreen">' +
@@ -101,8 +121,6 @@
         '<figcaption class="figure__cap"><span>' + K.escapeHtml(hero.label || "Primary render") + '</span><span class="idx">' + pad2(1) + " / " + pad2(images.length) + "</span></figcaption>" +
       "</figure>";
 
-    var restSection = document.getElementById("proj-rest-section");
-    var restWrap = document.getElementById("proj-rest");
     if (rest.length) {
       var allSquare = rest.every(function (im) { return isSquare(im.url); });
       restWrap.className = allSquare ? "map-grid" : "";

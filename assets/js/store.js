@@ -73,6 +73,26 @@ window.KYN = window.KYN || {};
     return p;
   }
 
+  /* Turn a raw Storage error into something a human can act on. The most
+     common causes are Storage not being enabled (it needs the Blaze plan)
+     or the security rules denying the write. */
+  function describeStorageError(err) {
+    var code = err && err.code ? err.code : "";
+    if (code === "storage/unauthorized" || code === "storage/permission-denied") {
+      return "Cloud Storage denied the upload. Make sure you are signed in as the admin and that storage.rules is published.";
+    }
+    if (code === "storage/unknown" || code === "storage/retry-limit-exceeded" || code === "storage/canceled") {
+      return "Could not reach Cloud Storage. Is Storage enabled for this project? It requires the Blaze plan, and storage.rules must be published.";
+    }
+    if (code === "storage/quota-exceeded") {
+      return "Cloud Storage quota exceeded — check your Firebase usage and billing.";
+    }
+    if (code === "storage/invalid-argument") {
+      return "That file could not be uploaded (unsupported type or empty file).";
+    }
+    return (err && err.message) ? err.message : "Upload failed.";
+  }
+
   /* ------------------------------------------------------------ firebase */
   function ensureFirebase() {
     if (K._fbPromise) return K._fbPromise;
@@ -198,6 +218,28 @@ window.KYN = window.KYN || {};
       return Promise.resolve();
     },
 
+    /* Delete every project. Firestore batches cap at 500 writes, so chunk it. */
+    deleteAllProjects: function (ids) {
+      ids = Array.isArray(ids) ? ids : [];
+      if (store.isFirebase()) {
+        var chain = Promise.resolve();
+        for (var i = 0; i < ids.length; i += 400) {
+          (function (chunk) {
+            chain = chain.then(function () {
+              var batch = fb.db.batch();
+              chunk.forEach(function (id) {
+                batch.delete(fb.db.collection(K.COLLECTION).doc(id));
+              });
+              return batch.commit();
+            });
+          })(ids.slice(i, i + 400));
+        }
+        return chain;
+      }
+      writeDemo([]);
+      return Promise.resolve();
+    },
+
     reorderProjects: function (orderedIds) {
       if (store.isFirebase()) {
         var batch = fb.db.batch();
@@ -218,6 +260,9 @@ window.KYN = window.KYN || {};
     uploadImages: function (files, slug, onProgress) {
       files = Array.prototype.slice.call(files || []);
       if (store.isFirebase()) {
+        if (!fb.storage) {
+          return Promise.reject(new Error("Cloud Storage is unavailable — check that Firebase finished initialising."));
+        }
         var done = 0;
         var out = [];
         var chain = Promise.resolve();
@@ -225,14 +270,14 @@ window.KYN = window.KYN || {};
           chain = chain.then(function () {
             var safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
             var path = K.STORAGE_DIR + "/" + (slug || "unfiled") + "/" + Date.now() + "-" + safe;
-            var ref = fb.storage.ref(path);
-            return ref.put(file).then(function (snap) {
-              return snap.ref.getDownloadURL().then(function (url) {
+            return fb.storage.ref(path).put(file)
+              .then(function (snap) { return snap.ref.getDownloadURL(); })
+              .then(function (url) {
                 out.push({ url: url, path: path, label: file.name.replace(/\.[a-z0-9]+$/i, "") });
                 done++;
                 if (onProgress) onProgress(done, files.length);
-              });
-            });
+              })
+              .catch(function (err) { throw new Error(describeStorageError(err)); });
           });
         });
         return chain.then(function () { return out; });

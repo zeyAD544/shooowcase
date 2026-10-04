@@ -64,9 +64,7 @@
     if (K.isFirebaseConfigured()) {
       // Firebase path: real authentication.
       $("#auth-form").hidden = false;
-      $("#auth-setup").hidden = true;
       $("#auth-sub").textContent = "Sign in to manage projects and media.";
-      $("#auth-note").hidden = false;
 
       $("#auth-form").addEventListener("submit", function (e) {
         e.preventDefault();
@@ -87,18 +85,10 @@
         else { state.user = null; showAuth(); }
       });
     } else {
-      // Demo path: no backend configured.
+      // No backend configured — there is nothing to sign in to yet.
       $("#auth-form").hidden = true;
-      $("#auth-sub").textContent = "Firebase is not connected, so this build runs in local demo mode.";
-      $("#auth-note").hidden = true;
-      $("#auth-setup").hidden = false;
+      $("#auth-sub").textContent = "Firebase is not configured. Add your project keys to assets/js/config.js.";
     }
-
-    $("#demo-enter").addEventListener("click", function () {
-      state.mode = "demo";
-      state.user = { email: "demo@kyn.local" };
-      showDashboard();
-    });
 
     $("#signout-btn").addEventListener("click", function () {
       if (state.mode === "firebase") {
@@ -561,6 +551,25 @@
     $("#proj-search").addEventListener("input", function () { state.filter = this.value; renderProjects(); });
     $("#new-btn").addEventListener("click", function () { openEditor(null); });
     $("#menu-btn").addEventListener("click", openMenu);
+
+    var clearAll = $("#clear-all-btn");
+    if (clearAll) clearAll.addEventListener("click", function () {
+      if (!state.projects.length) { K.toast("There are no projects to delete.", "info"); return; }
+      openModal({
+        title: "Delete all projects?",
+        body: "All " + state.projects.length + " project" + (state.projects.length === 1 ? "" : "s") +
+          " will be permanently removed. This cannot be undone.",
+        confirmLabel: "Delete all",
+        onConfirm: function () {
+          return K.store.deleteAllProjects(state.projects.map(function (p) { return p.id; }))
+            .then(function () {
+              K.toast("All projects deleted", "ok");
+              return loadProjects().then(function () { showPanel("projects"); });
+            })
+            .catch(function (err) { K.toast(err.message, "error"); });
+        }
+      });
+    });
     $("#admin-backdrop").addEventListener("click", closeMenu);
 
     $$(".admin-nav-item[data-goto]").forEach(function (b) {

@@ -37,18 +37,6 @@
       </form>
 
       <div class="auth__msg" id="auth-msg" role="alert"></div>
-
-      <div class="auth__demo" id="auth-setup" hidden>
-        <p><b>Firebase is not configured yet.</b> Add your project keys to
-          <code>assets/js/config.js</code> and deploy the included security rules — full steps in
-          <code>SETUP.md</code>.</p>
-        <button class="btn btn--solid btn--block" id="demo-enter" type="button">Open the demo dashboard</button>
-      </div>
-
-      <p class="auth__note" id="auth-note">
-        Access is enforced by Firebase Authentication and the Firestore / Storage security rules —
-        there are no passwords in this page.
-      </p>
     </div>
   </div>
 
@@ -116,6 +104,14 @@
             <div id="proj-rows"></div>
           </div>
           <p class="mono" style="margin-top:16px">Drag the handle to reorder — order and status save instantly.</p>
+
+          <div class="danger-zone">
+            <div>
+              <b>Danger zone</b>
+              <span>Permanently erase every project. Uploaded files in Storage are kept.</span>
+            </div>
+            <button class="btn btn--sm" id="clear-all-btn" type="button">Delete all projects</button>
+          </div>
         </section>
 
         <!-- ===== EDITOR ===== -->

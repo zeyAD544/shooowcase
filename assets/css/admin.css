@@ -311,6 +311,21 @@
 .progress { height: 3px; background: var(--bg-3); border-radius: 999px; overflow: hidden; margin-top: 12px; }
 .progress__bar { height: 100%; width: 0; background: var(--accent); transition: width 160ms linear; }
 
+/* Danger zone */
+.danger-zone {
+  margin-top: 26px; padding: 16px 18px;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap;
+  border: 1px solid color-mix(in srgb, var(--danger) 34%, transparent);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--danger) 5%, transparent);
+}
+.danger-zone b { display: block; }
+.danger-zone span { font-size: 11px; letter-spacing: .06em; color: var(--muted); }
+.danger-zone #clear-all-btn {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+}
+
 @media (max-width: 860px) {
   .admin-shell { grid-template-columns: 1fr; }
   .admin-side {

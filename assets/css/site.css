@@ -489,6 +489,17 @@
 .project-next__arrow { font-size: 28px; color: var(--faint); transition: transform var(--dur) var(--ease-out), color var(--dur) var(--ease-out); }
 .project-next__link:hover .project-next__arrow { transform: translateX(10px); color: var(--accent); }
 
+/* Empty-media state on a project with no images */
+.figure-empty {
+  display: grid; place-content: center; gap: 10px; text-align: center;
+  min-height: min(52vh, 420px); padding: clamp(32px, 6vw, 72px);
+  border: 1px dashed var(--line); border-radius: var(--radius);
+  background: var(--bg-2); color: var(--muted);
+}
+.figure-empty .eyebrow { margin: 0; }
+.figure-empty h3 { font-family: var(--font-display); font-weight: 300; font-size: clamp(22px, 3.4vw, 34px); color: var(--fg); margin: 0; }
+.figure-empty p { margin: 0; max-width: 46ch; }
+
 /* Loading / not-found for the project page */
 .project-state { padding-block: clamp(80px, 16vh, 200px); text-align: center; color: var(--muted); }
 .project-state h1 { font-family: var(--font-display); font-weight: 300; font-size: clamp(32px, 6vw, 72px); color: var(--fg); margin-bottom: 14px; }
