@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /admin.html
+Disallow: /project.html?preview=1

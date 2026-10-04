@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kyn — 3D Modeler</title>
+  <meta name="description" content="Kyn is a 3D modeler working in hard-surface and props. A curated portfolio of models, renders and surface studies." />
+  <meta name="theme-color" content="#0a0a0b" />
+  <meta name="author" content="Kyn" />
+  <meta property="og:title" content="Kyn — 3D Modeler" />
+  <meta property="og:description" content="A curated portfolio of 3D models, renders and surface studies by Kyn." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="assets/img/work/rangefinder-35-cover.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="assets/css/base.css" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  <noscript><style>.reveal{opacity:1 !important;transform:none !important}</style></noscript>
+</head>
+<body>
+  <a class="skip-link" href="#work">Skip to selected work</a>
+
+  <header class="site-header" id="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Kyn — home">
+        <span class="brand__mark">Kyn</span>
+        <span class="brand__role">3D Modeler</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="#work">Work</a>
+        <a href="#index">Index</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <div class="header-status">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span>Open for work</span>
+        <span class="header-clock" data-clock aria-hidden="true">--:--:--</span>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ================= HERO ================= -->
+    <section class="hero" aria-labelledby="hero-name">
+      <div class="hero__grid-bg" aria-hidden="true"></div>
+      <div class="hero__glow" aria-hidden="true"></div>
+      <div class="container">
+        <p class="eyebrow reveal">Portfolio — Vol. 01 / <span id="year-inline">2026</span></p>
+        <div class="hero__grid" style="margin-top:clamp(20px,4vw,48px)">
+          <div>
+            <h1 class="hero__name reveal" id="hero-name">Kyn<span class="dot">.</span></h1>
+            <div class="hero__tagline reveal">
+              <span class="hero__role">3D Modeler</span>
+              <span class="mono">Hard-surface · Props · Look-dev</span>
+            </div>
+          </div>
+          <div class="hero__aside reveal">
+            <p class="hero__lead">
+              I model, UV and texture objects with an eye for <strong>surface, silhouette and light</strong> —
+              the small signs of use that make a render believable.
+            </p>
+            <div class="hero__actions">
+              <a class="btn btn--solid" href="#work">View selected work <span aria-hidden="true">↓</span></a>
+              <button class="btn" type="button" data-copy="kyn_09z" aria-label="Copy Discord username kyn_09z">
+                <span data-copy-label>Discord — kyn_09z</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero__foot">
+          <span class="hero__scroll"><span class="line" aria-hidden="true"></span> Scroll to the work</span>
+          <div class="hero__coords" data-coords aria-hidden="true">
+            <span>VIEWPORT</span>
+            <span>X <b data-x>0000.0</b></span>
+            <span>Y <b data-y>0000.0</b></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SELECTED WORK ================= -->
+    <section class="section" id="work">
+      <div class="container">
+        <div class="section-head reveal">
+          <h2>Selected Work</h2>
+          <p class="mono meta">(<span id="work-count">07</span>) — 2023 – 2026</p>
+        </div>
+        <div class="work-grid" id="work-grid">
+          <noscript>
+            <div class="empty-state" style="grid-column:1/-1">
+              <h3>JavaScript is required</h3>
+              <p>This portfolio loads its projects dynamically. Please enable JavaScript.</p>
+            </div>
+          </noscript>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= INDEX ================= -->
+    <section class="section section--tight" id="index">
+      <div class="container">
+        <div class="section-head reveal">
+          <h2>Index</h2>
+          <p class="mono meta">All projects</p>
+        </div>
+        <ol class="index-list" id="index-list">
+          <li class="index__row"><span class="mono" style="display:block;padding:24px 0">Loading…</span></li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ================= CONTACT ================= -->
+    <section class="contact" id="contact">
+      <div class="container">
+        <div class="contact__inner">
+          <h2 class="contact__title reveal">Open for commissions and collaborations — <em>the stranger the brief, the better.</em></h2>
+
+          <div class="contact__row">
+            <div class="reveal">
+              <p class="eyebrow contact__label">Discord — the only inbox I check</p>
+              <div class="discord">
+                <span class="discord__value">kyn_09z</span>
+                <button class="copy-btn" type="button" data-copy="kyn_09z" aria-label="Copy Discord username kyn_09z">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                  <span data-copy-label>Copy username</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="reveal">
+              <p class="eyebrow contact__label">Current availability</p>
+              <p class="hero__lead" style="max-width:40ch">
+                Booking new work for <strong>Q1 2026</strong>. Working remotely with studios and
+                independent teams worldwide. Renders, props and full asset production.
+              </p>
+            </div>
+          </div>
+
+          <div class="colophon">
+            <span>© <span id="year">2026</span> Kyn — All renders and models</span>
+            <ul>
+              <li>Vol. 01</li>
+              <li>Portfolio</li>
+              <li><a href="admin.html" rel="nofollow">Admin</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/demo-data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/viewer.js"></script>
+  <script src="assets/js/site.js"></script>
+</body>
+</html>

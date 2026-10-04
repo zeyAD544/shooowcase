@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin — Kyn</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#0a0a0b" />
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300..600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/base.css" />
+  <link rel="stylesheet" href="assets/css/admin.css" />
+</head>
+<body>
+  <!-- ================= AUTH GATE ================= -->
+  <div class="auth" id="view-auth">
+    <div class="auth__card">
+      <div class="auth__brand">
+        <span class="brand__mark">Kyn</span>
+        <span class="mono">Admin</span>
+      </div>
+      <h1 class="auth__title">Private dashboard</h1>
+      <p class="auth__sub" id="auth-sub">Sign in to manage projects and media.</p>
+
+      <form class="auth__form" id="auth-form" hidden>
+        <div class="field">
+          <label class="field__label" for="auth-email"><b>Email</b></label>
+          <input class="input" id="auth-email" type="email" autocomplete="username" required />
+        </div>
+        <div class="field">
+          <label class="field__label" for="auth-password"><b>Password</b></label>
+          <input class="input" id="auth-password" type="password" autocomplete="current-password" required />
+        </div>
+        <button class="btn btn--solid btn--block" id="auth-submit" type="submit">Sign in</button>
+      </form>
+
+      <div class="auth__msg" id="auth-msg" role="alert"></div>
+
+      <div class="auth__demo" id="auth-setup" hidden>
+        <p><b>Firebase is not configured yet.</b> Add your project keys to
+          <code>assets/js/config.js</code> and deploy the included security rules — full steps in
+          <code>SETUP.md</code>.</p>
+        <button class="btn btn--solid btn--block" id="demo-enter" type="button">Open the demo dashboard</button>
+      </div>
+
+      <p class="auth__note" id="auth-note">
+        Access is enforced by Firebase Authentication and the Firestore / Storage security rules —
+        there are no passwords in this page.
+      </p>
+    </div>
+  </div>
+
+  <!-- ================= DASHBOARD ================= -->
+  <div class="admin-shell" id="view-dashboard" hidden>
+    <div class="admin-backdrop" id="admin-backdrop" hidden></div>
+
+    <aside class="admin-side" id="admin-side">
+      <div class="admin-side__brand">
+        <span class="brand__mark">Kyn</span>
+        <span class="mono">Admin</span>
+      </div>
+      <nav class="admin-side__nav" aria-label="Dashboard">
+        <button class="admin-nav-item" type="button" data-goto="projects" aria-current="true">
+          <span class="admin-nav-item__dot" aria-hidden="true"></span> Projects
+        </button>
+        <button class="admin-nav-item" type="button" data-goto="new">
+          <span class="admin-nav-item__dot" aria-hidden="true"></span> New project
+        </button>
+        <a class="admin-nav-item" href="index.html" target="_blank" rel="noopener">
+          <span class="admin-nav-item__dot" aria-hidden="true"></span> View site ↗
+        </a>
+      </nav>
+      <div class="admin-side__foot">
+        <div class="admin-user">
+          <span class="admin-user__avatar" id="user-avatar">K</span>
+          <div class="admin-user__meta">
+            <b id="user-name">Demo</b>
+            <span id="user-role">Local demo</span>
+          </div>
+        </div>
+        <button class="btn btn--sm btn--block" id="signout-btn" type="button">Sign out</button>
+      </div>
+    </aside>
+
+    <div class="admin-main">
+      <div class="admin-topbar">
+        <div style="display:flex;align-items:center;gap:12px">
+          <button class="icon-btn admin-menu-btn" id="menu-btn" type="button" aria-label="Open menu">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          </button>
+          <h1 id="topbar-title">Projects</h1>
+        </div>
+        <div class="admin-topbar__actions">
+          <span class="mono" id="mode-badge"></span>
+          <button class="btn btn--sm btn--solid" id="new-btn" type="button">New project</button>
+        </div>
+      </div>
+
+      <div class="admin-content">
+        <div class="admin-banner" id="demo-banner" hidden data-kind="demo"></div>
+
+        <!-- ===== PROJECTS ===== -->
+        <section class="admin-view" id="panel-projects" aria-label="Projects">
+          <div class="admin-toolbar">
+            <div class="admin-search">
+              <input class="input" id="proj-search" type="search" placeholder="Search projects…" aria-label="Search projects" />
+            </div>
+            <span class="mono" id="proj-count"></span>
+          </div>
+          <div class="proj-list">
+            <div class="proj-list__head">
+              <span></span><span>Cover</span><span>Project</span><span>Software</span><span>Year</span><span>Status</span><span style="text-align:right">Actions</span>
+            </div>
+            <div id="proj-rows"></div>
+          </div>
+          <p class="mono" style="margin-top:16px">Drag the handle to reorder — order and status save instantly.</p>
+        </section>
+
+        <!-- ===== EDITOR ===== -->
+        <section class="admin-view" id="panel-editor" hidden aria-label="Editor">
+          <form class="editor" id="editor-form" novalidate>
+            <div class="editor__main">
+              <div class="panel">
+                <div class="panel__title"><span>Project details</span><span id="editor-mode">New</span></div>
+
+                <div class="field">
+                  <div class="field__label"><b>Title <span class="req">*</span></b><span class="field__hint">Shown across the site</span></div>
+                  <input class="input" id="f-title" autocomplete="off" required />
+                  <p class="field__error" id="err-title" hidden>Please add a title.</p>
+                </div>
+
+                <div class="field">
+                  <div class="field__label"><b>Slug</b><span class="field__hint">Unique URL — auto from the title</span></div>
+                  <div class="slug-wrap">
+                    <span class="slug-prefix">project.html?p=</span>
+                    <input class="input input--mono input--slug" id="f-slug" autocomplete="off" />
+                  </div>
+                </div>
+
+                <div class="field">
+                  <div class="field__label"><b>Description</b><span class="field__hint">Optional — a short note</span></div>
+                  <textarea class="textarea" id="f-description" placeholder="What is the piece, and what was interesting to make?"></textarea>
+                </div>
+
+                <div class="field">
+                  <div class="field__label"><b>Creation date</b><span class="field__hint">Used for the year shown on the site</span></div>
+                  <input class="input" id="f-date" type="date" />
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="panel__title"><span>Software &amp; tags</span><span>Optional</span></div>
+                <div class="field">
+                  <div class="field__label"><b>Software used</b><span class="field__hint">Type and press Enter</span></div>
+                  <div class="chips-input" id="f-software"><input type="text" placeholder="e.g. Blender" aria-label="Add software" /></div>
+                </div>
+                <div class="field">
+                  <div class="field__label"><b>Tags</b><span class="field__hint">Type and press Enter</span></div>
+                  <div class="chips-input" id="f-tags"><input type="text" placeholder="e.g. Hard-surface" aria-label="Add tag" /></div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="panel__title"><span>Images</span><span id="img-count">0</span></div>
+                <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload images">
+                  <span class="dropzone__icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 16V4M12 4l-4 4M12 4l4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                  </span>
+                  <b>Drop images here, or click to browse</b>
+                  <span>PNG, JPG or WebP · multiple files supported</span>
+                </div>
+                <input type="file" id="file-input" accept="image/*" multiple hidden />
+                <div class="progress" id="upload-progress" hidden><div class="progress__bar" id="upload-bar"></div></div>
+                <div class="img-grid" id="img-grid"></div>
+                <p class="img-empty" id="img-empty">No images yet. The first image becomes the cover — drag to reorder, or set any image as the cover.</p>
+              </div>
+            </div>
+
+            <aside class="editor__aside">
+              <div class="panel">
+                <div class="panel__title"><span>Publishing</span></div>
+                <div class="toggle">
+                  <div class="toggle__text"><b>Published</b><span>Visible on the public site</span></div>
+                  <button class="switch" type="button" id="f-published" role="switch" aria-checked="false" aria-label="Published"></button>
+                </div>
+                <div class="toggle">
+                  <div class="toggle__text"><b>Featured</b><span>Highlighted in selected work</span></div>
+                  <button class="switch" type="button" id="f-featured" role="switch" aria-checked="false" aria-label="Featured"></button>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="panel__title"><span>Cover image</span><span id="cover-label"></span></div>
+                <div class="img-grid" id="cover-grid" style="grid-template-columns:1fr;margin-top:0"></div>
+                <p class="img-empty" id="cover-empty">Add images to choose a cover.</p>
+              </div>
+
+              <div class="panel">
+                <div class="panel__title"><span>Actions</span></div>
+                <div style="display:grid;gap:10px">
+                  <button class="btn btn--solid btn--block" id="save-btn" type="submit">Save project</button>
+                  <button class="btn btn--block" id="preview-btn" type="button">Preview</button>
+                  <button class="btn btn--block" id="cancel-btn" type="button">Back to projects</button>
+                  <button class="btn btn--block" id="delete-btn" type="button" style="color:var(--danger);border-color:color-mix(in srgb,var(--danger) 40%,transparent)">Delete project</button>
+                </div>
+              </div>
+            </aside>
+          </form>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= CONFIRM MODAL ================= -->
+  <div class="modal" id="confirm-modal" data-open="false" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <div class="modal__panel">
+      <h2 class="modal__title" id="confirm-title">Delete project?</h2>
+      <p class="modal__body" id="confirm-body">This cannot be undone.</p>
+      <div class="modal__actions">
+        <button class="btn btn--sm" id="confirm-cancel" type="button">Cancel</button>
+        <button class="btn btn--sm" id="confirm-ok" type="button" style="color:var(--danger);border-color:color-mix(in srgb,var(--danger) 44%,transparent)">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/demo-data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/admin.js"></script>
+</body>
+</html>

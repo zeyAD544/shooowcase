@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Project — Kyn, 3D Modeler</title>
+  <meta name="description" content="A 3D project presented as a case study by Kyn — renders, views and surface studies." />
+  <meta name="theme-color" content="#0a0a0b" />
+  <meta name="author" content="Kyn" />
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/base.css" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  <noscript><style>.reveal{opacity:1 !important;transform:none !important}</style></noscript>
+</head>
+<body>
+  <a class="skip-link" href="#project-root">Skip to project</a>
+
+  <header class="site-header" id="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Kyn — home">
+        <span class="brand__mark">Kyn</span>
+        <span class="brand__role">3D Modeler</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="index.html#work">Work</a>
+        <a href="index.html#index">Index</a>
+        <a href="index.html#contact">Contact</a>
+      </nav>
+      <div class="header-status">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span>Open for work</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="project-main">
+    <div class="container">
+      <a class="project-back" href="index.html#index">
+        <span aria-hidden="true">←</span> Back to index
+      </a>
+    </div>
+
+    <!-- Error / not-found state -->
+    <div class="container">
+      <section class="project-state" id="project-state" hidden aria-live="polite"></section>
+    </div>
+
+    <!-- Project content -->
+    <div id="project-root" hidden>
+      <div class="container">
+        <header class="project-head">
+          <div>
+            <span class="project-head__idx">
+              <span id="proj-idx">01</span> — <span id="proj-cat">Project</span>
+            </span>
+            <h1 id="proj-title">Project</h1>
+          </div>
+          <p class="project-lead" id="proj-lead"></p>
+        </header>
+
+        <div style="margin-top:clamp(28px,4vw,52px)">
+          <dl class="project-meta" id="proj-meta"></dl>
+        </div>
+      </div>
+
+      <section class="project-section">
+        <div class="container">
+          <div class="project-section__head">
+            <h2>Presentation</h2>
+            <span class="mono" id="proj-hero-count">Primary render</span>
+          </div>
+          <div id="proj-hero"></div>
+        </div>
+      </section>
+
+      <section class="project-section" id="proj-rest-section">
+        <div class="container">
+          <div class="project-section__head">
+            <h2 id="proj-rest-label">More views</h2>
+            <span class="mono" id="proj-rest-count"></span>
+          </div>
+          <div id="proj-rest"></div>
+        </div>
+      </section>
+
+      <section class="project-next container" id="proj-next"></section>
+
+      <div class="container" style="padding-bottom:clamp(48px,8vw,96px)">
+        <div class="colophon" style="margin-top:0">
+          <span>© <span id="year">2026</span> Kyn — All renders and models</span>
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="admin.html" rel="nofollow">Admin</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/demo-data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/viewer.js"></script>
+  <script src="assets/js/project.js"></script>
+  <script>
+    document.getElementById("year").textContent = String(new Date().getFullYear());
+  </script>
+</body>
+</html>
