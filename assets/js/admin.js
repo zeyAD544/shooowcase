@@ -188,7 +188,7 @@
       var project = state.projects.filter(function (p) { return p.id === id; })[0];
       if (!project) return;
 
-      $("[data-edit]", row).addEventListener("click", function () { openEditor(project); });
+      $("[data-edit]", row).addEventListener("click", function () { openEditorById(project); });
       $("[data-delete]", row).addEventListener("click", function () { confirmDelete(project); });
 
       $("[data-feature]", row).addEventListener("click", function () {
@@ -218,11 +218,26 @@
     renderImages();
   }
 
+  /* Listing projects only hydrates their covers (for speed). Before editing we
+     fetch the full project so every image reference is resolved to a URL. */
+  function openEditorById(project) {
+    if (!project || !project.id) { openEditor(project); return; }
+    var needsFull = (project.images || []).some(function (im) {
+      return im && typeof im === "object" && im.media && !im.url;
+    });
+    if (!needsFull) { openEditor(project); return; }
+    K.toast("Loading images…", "info");
+    K.store.getProjectById(project.id).then(function (full) {
+      openEditor(full || project);
+    }).catch(function () { openEditor(project); });
+  }
+
   function openEditor(project) {
     state.editing = project ? JSON.parse(JSON.stringify(project)) : null;
     state.slugTouched = !!project;
     state.images = ((project && project.images) || []).map(function (im) {
-      return typeof im === "string" ? { url: im, label: "" } : { url: im.url, path: im.path || null, label: im.label || "" };
+      if (typeof im === "string") return { url: im, label: "" };
+      return { url: im.url || "", media: im.media || null, path: im.path || null, label: im.label || "" };
     });
     state.cover = (project && project.coverImage) || (state.images[0] && state.images[0].url) || "";
 
@@ -247,13 +262,29 @@
   function collect() {
     var created = $("#f-date").value ? new Date($("#f-date").value).toISOString() : K.nowISO();
     var slug = K.slugify($("#f-slug").value || $("#f-title").value);
+
+    /* Persist lightweight references only — never the image bytes themselves,
+       so the project document stays well under Firestore's size limit. */
+    var images = state.images.map(function (im) {
+      return im.media
+        ? { media: im.media, label: im.label || "" }
+        : { url: im.url, path: im.path || null, label: im.label || "" };
+    });
+
+    /* Store the chosen cover by reference too (media id, or an external URL). */
+    var coverEntry = null;
+    for (var ci = 0; ci < state.images.length; ci++) {
+      if (state.images[ci].url && state.images[ci].url === state.cover) { coverEntry = state.images[ci]; break; }
+    }
+
     return {
       id: state.editing ? state.editing.id : undefined,
       title: $("#f-title").value.trim(),
       slug: slug,
       description: $("#f-description").value.trim(),
-      coverImage: state.cover || (state.images[0] && state.images[0].url) || "",
-      images: state.images.map(function (im) { return { url: im.url, path: im.path || null, label: im.label || "" }; }),
+      coverImage: coverEntry && !coverEntry.media ? coverEntry.url : "",
+      coverMedia: coverEntry && coverEntry.media ? coverEntry.media : "",
+      images: images,
       software: chips.software.get(),
       tags: chips.tags.get(),
       featured: getSwitch("#f-featured"),
@@ -295,7 +326,7 @@
       body: "“" + project.title + "” will be removed from the site. This cannot be undone.",
       confirmLabel: "Delete",
       onConfirm: function () {
-        return K.store.deleteProject(project.id).then(function () {
+        return K.store.deleteProject(project).then(function () {
           K.toast("Project deleted", "ok");
           return loadProjects().then(function () { showPanel("projects"); });
         }).catch(function (err) { K.toast(err.message, "error"); });
@@ -337,7 +368,7 @@
         var removed = state.images.splice(idx, 1)[0];
         if (removed && removed.url === state.cover) state.cover = (state.images[0] && state.images[0].url) || "";
         state.dirty = true;
-        if (removed && removed.path) K.store.deleteImage(removed);
+        if (removed) K.store.deleteImage(removed);
         renderImages();
       });
     });
@@ -561,7 +592,7 @@
           " will be permanently removed. This cannot be undone.",
         confirmLabel: "Delete all",
         onConfirm: function () {
-          return K.store.deleteAllProjects(state.projects.map(function (p) { return p.id; }))
+          return K.store.deleteAllProjects(state.projects)
             .then(function () {
               K.toast("All projects deleted", "ok");
               return loadProjects().then(function () { showPanel("projects"); });

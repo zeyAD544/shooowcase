@@ -30,9 +30,17 @@ window.KYN = window.KYN || {};
     measurementId: "G-G15NNE3QG7"
   };
 
-  /* Firestore collection + Storage folder used by the admin. */
+  /* Firestore collections used by the admin. Project documents stay small;
+     image bytes live one-per-document in `media` so the whole app works on
+     the free Spark plan (Cloud Storage requires the paid Blaze plan). */
   K.COLLECTION = "projects";
-  K.STORAGE_DIR = "projects";
+  K.MEDIA_COLLECTION = "media";
+
+  /* Free-mode image limits. Each image is downscaled into a JPEG data URL and
+     stored in its own `media` document, so it must fit well inside Firestore's
+     1 MiB per-document limit. */
+  K.MEDIA_MAX_DIM = 1600;          // longest edge in pixels before encoding
+  K.MEDIA_MAX_BYTES = 300 * 1024;  // target binary size (base64 adds ~33%)
 
   /* Firebase JS SDK version (compat build so pages also work from file://). */
   K.FIREBASE_SDK = "10.12.2";
@@ -146,6 +154,55 @@ window.KYN = window.KYN || {};
         ta.remove();
         resolve();
       } catch (err) { reject(err); }
+    });
+  };
+
+  /* Turn a File into a downscaled JPEG data URL that is guaranteed to fit
+     inside `maxBytes` (binary), stepping quality then dimensions down. This
+     is what keeps free-mode uploads inside Firestore's document size limit.
+     Transparency is flattened onto a dark background (the site's theme). */
+  K.fileToBoundedDataURL = function (file, opts) {
+    opts = opts || {};
+    var maxDim = opts.maxDim || K.MEDIA_MAX_DIM || 1600;
+    var maxBytes = opts.maxBytes || K.MEDIA_MAX_BYTES || 300 * 1024;
+    var background = opts.background || "#0a0a0b";
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onerror = function () { reject(new Error("Could not read file")); };
+      reader.onload = function () {
+        var img = new Image();
+        img.onerror = function () { reject(new Error("Could not decode image")); };
+        img.onload = function () {
+          var w = img.naturalWidth, h = img.naturalHeight;
+          if (!w || !h) { reject(new Error("Image has no dimensions")); return; }
+          var fit = Math.min(1, maxDim / Math.max(w, h));
+          var baseW = Math.max(1, Math.round(w * fit));
+          var baseH = Math.max(1, Math.round(h * fit));
+          var baseMax = Math.max(baseW, baseH);
+          var canvas = document.createElement("canvas");
+          var ctx = canvas.getContext("2d");
+          var quality = 0.82;
+          var dim = baseMax;
+          for (var guard = 0; guard < 14; guard++) {
+            var s = dim / baseMax;
+            var cw = Math.max(1, Math.round(baseW * s));
+            var ch = Math.max(1, Math.round(baseH * s));
+            canvas.width = cw; canvas.height = ch;
+            ctx.fillStyle = background;
+            ctx.fillRect(0, 0, cw, ch);
+            ctx.drawImage(img, 0, 0, cw, ch);
+            var url = canvas.toDataURL("image/jpeg", quality);
+            var comma = url.indexOf(",");
+            var bytes = Math.ceil((url.length - comma - 1) * 3 / 4);
+            if (bytes <= maxBytes || cw <= 2 || ch <= 2) { resolve(url); return; }
+            if (quality > 0.5) quality = Math.max(0.5, quality - 0.12);
+            else dim = Math.max(2, Math.round(dim * 0.82));
+          }
+          resolve(canvas.toDataURL("image/jpeg", 0.5));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
     });
   };
 
