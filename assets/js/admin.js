@@ -22,6 +22,98 @@
     slugTouched: false
   };
 
+  /* ---------------------------------------------------------- draft backup
+     Uploaded images are the user's actual work. Never lose them because the
+     tab was closed or Save was never pressed: while the editor is dirty its
+     image state is mirrored into localStorage (debounced) and restored the
+     next time the editor opens. In Firebase mode Firestore still holds the
+     real image bytes — this only preserves the references this page holds. */
+  var DRAFT_KEY = "kyn.admin.editorDraft.v1";
+  var draftTimer = null;
+
+  function draftKey(editingId) { return editingId ? DRAFT_KEY + ":" + editingId : DRAFT_KEY; }
+  function currentDraftKey() { return draftKey(state.editing && state.editing.id ? state.editing.id : null); }
+
+  function persistDraft() {
+    if (draftTimer) { clearTimeout(draftTimer); draftTimer = null; }
+    if (!state.images.length) { clearDraft(); return; }
+    try {
+      localStorage.setItem(currentDraftKey(), JSON.stringify({
+        ts: K.nowISO(),
+        editingId: state.editing && state.editing.id ? state.editing.id : null,
+        title: $("#f-title").value,
+        slug: $("#f-slug").value,
+        description: $("#f-description").value,
+        images: state.images,
+        cover: state.cover,
+        software: chips.software.get(),
+        tags: chips.tags.get()
+      }));
+    } catch (e) { /* quota exceeded — best effort */ }
+  }
+
+  function scheduleDraftPersist() {
+    if (draftTimer) clearTimeout(draftTimer);
+    draftTimer = setTimeout(persistDraft, 400);
+  }
+
+  function clearDraft() {
+    if (draftTimer) { clearTimeout(draftTimer); draftTimer = null; }
+    try { localStorage.removeItem(currentDraftKey()); } catch (e) {}
+  }
+
+  function markDirty() {
+    state.dirty = true;
+    if (state.images.length) scheduleDraftPersist();
+    else clearDraft();
+  }
+
+  /* Restore an unfinished session. Returns the number of images restored (0
+     when there is nothing to restore). A new project gets its fields back;
+     editing an existing project only merges images the doc does not hold yet,
+     so a stale draft can never clobber newer saved fields. */
+  function restoreDraft(project) {
+    var key = draftKey(project && project.id ? project.id : null);
+    var raw;
+    try { raw = localStorage.getItem(key); } catch (e) { return 0; }
+    if (!raw) return 0;
+    var d;
+    try { d = JSON.parse(raw); } catch (e) {
+      try { localStorage.removeItem(key); } catch (e2) {}
+      return 0;
+    }
+    if (!d || !Array.isArray(d.images) || !d.images.length) return 0;
+
+    if (!project) {
+      if (d.editingId) return 0;
+      state.images = d.images;
+      state.cover = d.cover || (d.images[0] && d.images[0].url) || "";
+      $("#f-title").value = d.title || "";
+      $("#f-slug").value = d.slug || "";
+      $("#f-description").value = d.description || "";
+      if (d.software) chips.software.set(d.software);
+      if (d.tags) chips.tags.set(d.tags);
+      return d.images.length;
+    }
+
+    if (d.editingId !== project.id) return 0;
+    var have = {};
+    state.images.forEach(function (im) {
+      if (im && im.media) have[im.media] = 1;
+      else if (im && im.url) have[im.url] = 1;
+    });
+    var added = 0;
+    d.images.forEach(function (im) {
+      var k = im && (im.media || im.url);
+      if (!k || have[k]) return;
+      state.images.push(im);
+      have[k] = 1;
+      added++;
+    });
+    if (added && d.cover) state.cover = d.cover;
+    return added;
+  }
+
   /* --------------------------------------------------------------- shells */
   function showAuth() {
     $("#view-auth").hidden = false;
@@ -43,6 +135,9 @@
       banner.innerHTML = "<span aria-hidden=\"true\">◆</span><p><b>Demo mode — not connected to Firebase.</b> " +
         "Everything you change is stored in this browser only (and shown on the public site here). " +
         "Add your project keys to <code>assets/js/config.js</code> and deploy <code>firestore.rules</code> / <code>storage.rules</code> to go live — see <code>SETUP.md</code>.</p>";
+    }
+    if (state.mode !== "firebase") {
+      K.toast("Demo mode — uploads are kept in this browser only, not in the cloud.", "warn");
     }
     loadProjects();
     showPanel("projects");
@@ -116,10 +211,21 @@
   }
 
   /* ---------------------------------------------------------- projects list */
+  var lastFallbackToast = "";
+
   function loadProjects() {
     return K.store.listProjects({}).then(function (list) {
       state.projects = list;
       renderProjects();
+      /* Reads can silently fall back to the bundled demo data. That is a
+         data-source switch the admin must see, or saved work looks missing. */
+      var reason = K.store.isFirebase() ? K.store.fallbackReason : null;
+      if (reason && reason !== lastFallbackToast) {
+        lastFallbackToast = reason;
+        K.toast("Could not reach Firebase — showing local data. Changes may not persist: " + reason, "error");
+      } else if (!reason) {
+        lastFallbackToast = "";
+      }
     }).catch(function (err) {
       K.toast("Could not load projects: " + err.message, "error");
     });
@@ -214,7 +320,7 @@
     var grid = $("#img-grid");
     var order = $$(".img-card", grid).map(function (c) { return parseInt(c.dataset.idx, 10); });
     state.images = order.map(function (i) { return state.images[i]; });
-    state.dirty = true;
+    markDirty();
     renderImages();
   }
 
@@ -251,8 +357,13 @@
 
     chips.software.set((project && project.software) || []);
     chips.tags.set((project && project.tags) || []);
+    var restored = restoreDraft(project);
     renderImages();
     state.dirty = false;
+    if (restored) {
+      markDirty();
+      K.toast("Restored " + restored + " unsaved image" + (restored === 1 ? "" : "s") + " — press Save project to keep them.", "info");
+    }
     $("#err-title").hidden = true;
     $("#f-title").removeAttribute("aria-invalid");
     showPanel("editor");
@@ -294,7 +405,8 @@
     };
   }
 
-  function saveEditor() {
+  function saveEditor(opts) {
+    opts = opts || {};
     var project = collect();
     if (!project.title) {
       $("#err-title").hidden = false;
@@ -312,7 +424,12 @@
     }
     return K.store.saveProject(project).then(function (saved) {
       state.dirty = false;
-      K.toast(project.published ? "Project saved and published" : "Project saved as draft", "ok");
+      clearDraft();
+      if (!opts.silent) {
+        K.toast(project.published
+          ? "Project saved and published — it is live on your site"
+          : "Project saved as draft — it stays private until you publish it", "ok");
+      }
       return loadProjects().then(function () {
         state.editing = saved;
         return saved;
@@ -361,13 +478,13 @@
       var coverBtn = $("[data-cover]", card);
       if (coverBtn) coverBtn.addEventListener("click", function () {
         state.cover = state.images[idx].url;
-        state.dirty = true;
+        markDirty();
         renderImages();
       });
       $("[data-remove]", card).addEventListener("click", function () {
         var removed = state.images.splice(idx, 1)[0];
         if (removed && removed.url === state.cover) state.cover = (state.images[0] && state.images[0].url) || "";
-        state.dirty = true;
+        markDirty();
         if (removed) K.store.deleteImage(removed);
         renderImages();
       });
@@ -398,9 +515,24 @@
     }).then(function (results) {
       results.forEach(function (im) { state.images.push(im); });
       if (!state.cover && state.images.length) state.cover = state.images[0].url;
-      state.dirty = true;
+      markDirty();
       renderImages();
-      K.toast(results.length + (results.length === 1 ? " image added" : " images added"), "ok");
+      var msg = results.length + (results.length === 1 ? " image added" : " images added");
+      if (!$("#f-title").value.trim()) {
+        /* No title yet, so the project itself cannot be saved. Back the
+           images up immediately and say what keeps them. */
+        persistDraft();
+        K.toast(msg + " — add a title and press Save project to keep them permanently.", "warn");
+        return;
+      }
+      /* Uploading must never leave work only in this page's memory: save the
+         project right away instead of waiting for a second Save click. */
+      return saveEditor({ silent: true }).then(function (saved) {
+        K.toast(msg + " — saved to \u201c" + saved.title + "\u201d", "ok");
+      }, function (err) {
+        if (err && err.message === "validation") { K.toast(msg, "ok"); return; }
+        K.toast(msg + " — but saving the project failed: " + err.message, "error");
+      });
     }).catch(function (err) {
       K.toast("Upload failed: " + err.message, "error");
     }).then(function () {
@@ -413,16 +545,16 @@
   /* --------------------------------------------------------- wire editor */
   function wireEditor() {
     $("#f-title").addEventListener("input", function () {
-      state.dirty = true;
+      markDirty();
       if (!state.slugTouched) $("#f-slug").value = K.slugify($("#f-title").value);
     });
-    $("#f-slug").addEventListener("input", function () { state.slugTouched = true; state.dirty = true; });
+    $("#f-slug").addEventListener("input", function () { state.slugTouched = true; markDirty(); });
     ["#f-description", "#f-date"].forEach(function (sel) {
-      $(sel).addEventListener("input", function () { state.dirty = true; });
+      $(sel).addEventListener("input", function () { markDirty(); });
     });
 
-    $("#f-published").addEventListener("click", function () { setSwitch("#f-published", !getSwitch("#f-published")); state.dirty = true; });
-    $("#f-featured").addEventListener("click", function () { setSwitch("#f-featured", !getSwitch("#f-featured")); state.dirty = true; });
+    $("#f-published").addEventListener("click", function () { setSwitch("#f-published", !getSwitch("#f-published")); markDirty(); });
+    $("#f-featured").addEventListener("click", function () { setSwitch("#f-featured", !getSwitch("#f-featured")); markDirty(); });
 
     $("#editor-form").addEventListener("submit", function (e) {
       e.preventDefault();
@@ -472,7 +604,7 @@
         chip.className = "chip chip--rm";
         chip.innerHTML = K.escapeHtml(v) + '<button type="button" aria-label="Remove ' + K.escapeHtml(v) + '">×</button>';
         chip.querySelector("button").addEventListener("click", function () {
-          values.splice(i, 1); state.dirty = true; render();
+          values.splice(i, 1); markDirty(); render();
         });
         root.insertBefore(chip, input);
       });
@@ -480,12 +612,12 @@
     function add(raw) {
       var v = String(raw || "").trim().replace(/,$/, "");
       if (!v) return;
-      if (values.indexOf(v) === -1) { values.push(v); state.dirty = true; render(); }
+      if (values.indexOf(v) === -1) { values.push(v); markDirty(); render(); }
       input.value = "";
     }
     input.addEventListener("keydown", function (e) {
       if (e.key === "Enter" || e.key === ",") { e.preventDefault(); add(input.value); }
-      else if (e.key === "Backspace" && !input.value && values.length) { values.pop(); state.dirty = true; render(); }
+      else if (e.key === "Backspace" && !input.value && values.length) { values.pop(); markDirty(); render(); }
     });
     input.addEventListener("blur", function () { add(input.value); });
     return {

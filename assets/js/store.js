@@ -266,6 +266,9 @@ window.KYN = window.KYN || {};
             list.push(normalize(Object.assign({ id: doc.id }, doc.data()), doc.id));
           });
           list = sortProjects(list);
+          /* A successful read clears any earlier fallback note, so the admin
+             only warns while the data on screen is genuinely stale. */
+          store.fallbackReason = null;
           /* Covers only — cheap, and enough for every listing surface. */
           return Promise.all(list.map(hydrateCover));
         }).catch(function (err) {
